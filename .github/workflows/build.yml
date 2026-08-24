@@ -70,13 +70,17 @@ jobs:
             main.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      # Nuitka intentionally skips DLLs inside --include-data-dir targets,
-      # so the screen-reader helper DLLs are copied in explicitly.
-      - name: Copy native helper DLLs
+      # Nuitka intentionally skips DLLs and executables inside its data dirs
+      # (it treats them as code), so the screen-reader helper DLLs that
+      # UniversalSpeechEngine loads at runtime are copied in explicitly.
+      # The same rule strips executables, hence HaseelaActivate.exe too.
+      - name: Copy native helpers
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force src/dist/main.dist/lib/UniversalSpeech | Out-Null
           Copy-Item src/lib/UniversalSpeech/* src/dist/main.dist/lib/UniversalSpeech/ -Force
+          New-Item -ItemType Directory -Force src/dist/main.dist/bin | Out-Null
+          Copy-Item src/bin/HaseelaActivate.exe src/dist/main.dist/bin/HaseelaActivate.exe -Force
 
       - name: Verify build output
         shell: pwsh
