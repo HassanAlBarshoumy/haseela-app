@@ -1,0 +1,145 @@
+name: Build Haseela installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout release repository
+        uses: actions/checkout@v4
+
+      # Source stays private; this token only needs read access to it.
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: HassanAlBarshoumy/haseela
+          token: ${{ secrets.CI_PAT }}
+          path: src
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: src/requirements.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r src/requirements.txt
+          python -m pip install nuitka
+
+      - name: Restore Nuitka cache
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\Nuitka\Nuitka\Cache
+          key: nuitka-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nuitka-${{ runner.os }}-
+
+      - name: Build standalone EXE with Nuitka
+        working-directory: src
+        shell: pwsh
+        run: |
+          python -m nuitka `
+            --standalone `
+            --windows-disable-console `
+            --assume-yes-for-downloads `
+            --include-data-dir=locales=locales `
+            --include-data-dir=lib=lib `
+            --include-data-dir=resources=resources `
+            --include-data-file=dictionary.db=dictionary.db `
+            --include-package-data=vosk `
+            --output-filename="haseela.exe" `
+            --output-dir=dist `
+            main.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Nuitka intentionally skips DLLs inside --include-data-dir targets,
+      # so the screen-reader helper DLLs are copied in explicitly.
+      - name: Copy native helper DLLs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src/dist/main.dist/lib/UniversalSpeech | Out-Null
+          Copy-Item src/lib/UniversalSpeech/* src/dist/main.dist/lib/UniversalSpeech/ -Force
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          $required = @(
+            "src/dist/main.dist/haseela.exe",
+            "src/dist/main.dist/dictionary.db",
+            "src/dist/main.dist/resources",
+            "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
+            "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
+          )
+          foreach ($f in $required) {
+            if (-not (Test-Path $f)) {
+              Write-Error "Missing from bundle: $f"
+              exit 1
+            }
+          }
+          Get-ChildItem src/dist/main.dist | Select-Object Name, Length
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Compile installer with Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found after chocolatey install"
+            exit 1
+          }
+          & $iscc src/haseela.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path "src/installer/haseela-setup.exe")) {
+            Write-Error "installer was not produced"
+            exit 1
+          }
+
+      - name: Zip portable distribution folder
+        shell: pwsh
+        run: Compress-Archive -Path src/dist/main.dist/* -DestinationPath haseela-windows-portable.zip -Force
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: haseela-installer
+          path: src/installer/haseela-setup.exe
+          retention-days: 14
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: haseela-portable
+          path: haseela-windows-portable.zip
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" `
+            "src/installer/haseela-setup.exe" `
+            "haseela-windows-portable.zip" `
+            --title "Haseela $env:GITHUB_REF_NAME" `
+            --generate-notes
