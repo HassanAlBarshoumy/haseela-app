@@ -61,6 +61,7 @@ jobs:
             --assume-yes-for-downloads `
             --include-data-dir=locales=locales `
             --include-data-dir=lib=lib `
+            --include-data-dir=bin=bin `
             --include-data-dir=resources=resources `
             --include-data-file=dictionary.db=dictionary.db `
             --include-package-data=vosk `
@@ -84,6 +85,7 @@ jobs:
             "src/dist/main.dist/haseela.exe",
             "src/dist/main.dist/dictionary.db",
             "src/dist/main.dist/resources",
+            "src/dist/main.dist/bin/HaseelaActivate.exe",
             "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
             "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
           )
