@@ -1,0 +1,24 @@
+# Template for GitHub automatically generated release notes.
+# The primary release notes are generated from source commits by build.yml,
+# but this file gives the UI-driven/gh --generate-notes path the same clean
+# categories whenever PRs with these labels are present.
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: "🚀 ميزات جديدة"
+      labels:
+        - feature
+        - enhancement
+    - title: "🐛 إصلاحات"
+      labels:
+        - bug
+        - fix
+    - title: "📖 توثيق"
+      labels:
+        - documentation
+        - docs
+    - title: "أخرى"
+      labels:
+        - "*"
