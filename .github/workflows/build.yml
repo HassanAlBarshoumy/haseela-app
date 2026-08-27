@@ -31,12 +31,14 @@ jobs:
       # Source stays private; this token only needs read access to it.
       # fetch-depth: 0 pulls full history so the release-notes generator
       # (later in this workflow) can classify commits since the last tag.
+      # The private repo never holds tags (pushing one there would burn
+      # paid Actions minutes), so the default ref is its main branch.
       - name: Checkout private source
         uses: actions/checkout@v4
         with:
           repository: HassanAlBarshoumy/haseela
           token: ${{ secrets.CI_PAT }}
-          ref: ${{ inputs.ref || github.ref_name }}
+          ref: ${{ inputs.ref || 'main' }}
           path: src
           fetch-depth: 0
 
@@ -151,21 +153,14 @@ jobs:
 
       # Build release notes from the SOURCE repo's actual commits (the public
       # repo is only a build surface and holds no source). Conventional Commit
-      # prefixes gate each line into a section. Falls back to the last public
-      # release tag or the whole history when no prior boundary exists.
+      # prefixes gate each line into a section. Falls back to the whole history
+      # when no prior boundary exists.
       - name: Generate release notes from source
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           $prev = gh release list --repo "$env:GITHUB_REPOSITORY" --limit 2 --json tagName --jq '.[1].tagName // empty'
-          if (-not $prev) {
-            $prev = git -C src for-each-ref --sort=-creatordate --format='%(refname:short)' refs/tags | Select-Object -First 1
-          }
-          if (-not $prev) {
-            $range = 'HEAD'
-          } else {
-            $range = "$prev..HEAD"
-          }
+          if (-not $prev) { $range = 'HEAD' } else { $range = "$prev..HEAD" }
           $log = git -C src log --oneline $range 2>$null
           if (-not $log) { $log = git -C src log --oneline -30 HEAD 2>$null }
 
@@ -178,13 +173,14 @@ jobs:
             else { $other += $subj }
           }
 
-          $out = @("# Haseela $env:GITHUB_REF_NAME`n")
+          $out = @("")
           if ($feat.Count) { $out += "## ميزات جديدة"; $out += $feat; $out += "" }
-          if ($fix.Count)  { $out += "## إصلاحات";      $out += $fix;  $out += "" }
-          if ($docs.Count) { $out += "## توثيق";        $out += $docs; $out += "" }
-          if ($other.Count){ $out += "## أخرى";         $out += $other;$out += "" }
+          if ($fix.Count)  { $out += "## إصلاحات";     $out += $fix;  $out += "" }
+          if ($docs.Count) { $out += "## توثيق";       $out += $docs; $out += "" }
+          if ($other.Count){ $out += "## أخرى";        $out += $other;$out += "" }
+          $out = $out | Where-Object { $_ -ne "" }
           $out += "التغييرات الكاملة: https://github.com/$env:GITHUB_REPOSITORY/compare/$prev...$env:GITHUB_REF_NAME"
-          $out -join "`n" | Set-Content -Path notes.md -Encoding UTF8
+          ($out -join "`n") | Set-Content -Path notes.md -Encoding UTF8
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
