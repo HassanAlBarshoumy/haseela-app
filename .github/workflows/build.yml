@@ -156,7 +156,7 @@ jobs:
       # never tagged (BUILD.md), so a boundary can never be a private tag name.
       # Strategy mirrors the versioning SOP: map each prior public release tag
       # to the source commit that bumped APP_VERSION to that version (git log
-      # -S on gui_constants.py). Fallbacks are clearly labelled so the notes
+      # -G/-S on gui_constants.py). Fallbacks are clearly labelled so the notes
       # scope is never silently misread.
       - name: Generate release notes from source
         if: startsWith(github.ref, 'refs/tags/v')
@@ -168,6 +168,7 @@ jobs:
           $all = @(gh release list --repo "$env:GITHUB_REPOSITORY" --limit 20 --json tagName,publishedAt 2>$null | ConvertFrom-Json)
           $prevRel = $all | Where-Object { $_.tagName -ne $cur } | Select-Object -First 1
 
+          $range = $null
           $label = ""
           if ($prevRel -and $prevRel.tagName -match 'v([0-9.]+)') {
             $prevVer = $Matches[1]
@@ -183,7 +184,7 @@ jobs:
           }
 
           $log = @(git -C src log --oneline $range 2>$null)
-          if ($log.Count -eq 0) {
+          if (-not $range -or $log.Count -eq 0) {
             $log = @(git -C src log --oneline -40 HEAD 2>$null)
             $label = "استخدام احتياطي: آخر 40 التزاماً (تعذّر تحديد حدّ إصدار سابق)"
           }
@@ -197,13 +198,13 @@ jobs:
             else { $other += $subj }
           }
 
-          $out = @("> $label", "")
-          if ($feat.Count) { $out += "## ميزات جديدة"; $out += $feat; $out += "" }
-          if ($fix.Count)  { $out += "## إصلاحات";     $out += $fix;  $out += "" }
-          if ($docs.Count) { $out += "## توثيق";       $out += $docs; $out += "" }
-          if ($other.Count){ $out += "## أخرى";        $out += $other;$out += "" }
-          $out = $out | Where-Object { $_ -ne "" }
+          $out = @("> $label")
+          if ($feat.Count) { $out += ""; $out += "## ميزات جديدة"; $out += $feat }
+          if ($fix.Count)  { $out += ""; $out += "## إصلاحات";     $out += $fix }
+          if ($docs.Count) { $out += ""; $out += "## توثيق";       $out += $docs }
+          if ($other.Count){ $out += ""; $out += "## أخرى";        $out += $other }
           $prevTag = if ($prevRel) { $prevRel.tagName } else { '' }
+          $out += ""
           $out += "التغييرات الكاملة: https://github.com/$env:GITHUB_REPOSITORY/compare/$prevTag...$cur"
           ($out -join "`n") | Set-Content -Path notes.md -Encoding UTF8
 
