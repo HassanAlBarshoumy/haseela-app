@@ -169,25 +169,29 @@ jobs:
           $all = if ($rawReleases) { $rawReleases | ConvertFrom-Json } else { @() }
           $prevRel = $all | Where-Object { $_.tagName -ne $cur } | Select-Object -First 1
 
-          $range = $null
-          $label = ""
-          if ($prevRel -and $prevRel.tagName -match 'v([0-9.]+)') {
-            $prevVer = $Matches[1]
-            $prevShaLine = git -C src log --reverse -S "$prevVer" --oneline -- gui_constants.py 2>$null | Select-Object -First 1
-            if ($prevShaLine) {
-              $prevSha = ($prevShaLine -split ' ')[0]
-              $range = "$prevSha..HEAD"
-              $label = "التغييرات منذ الإصدار $($prevRel.tagName) (التزام المصدر $prevSha)"
-            } else {
-              $range = "--since=$($prevRel.publishedAt)"
-              $label = "التغييرات منذ الإصدار $($prevRel.tagName) (بحدّ زمني، تعذّر مطابقة التزام المصدر)"
-            }
+          # Fail fast: never fall back to a wide "last N commits" spill. If the
+          # prior release cannot be determined or mapped to a source commit,
+          # abort so misleading release notes are never published.
+          if ($null -eq $prevRel -or $prevRel.tagName -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+            Write-Host "::error::Could not determine the previous release to diff against (got tagName='$($prevRel.tagName)'). Aborting release-note generation."
+            exit 1
           }
+          $prevVer = $Matches[0]
+
+          # Map the prior version to the source commit that bumped APP_VERSION.
+          $prevShaLine = git -C src log --reverse -S $prevVer --oneline -- gui_constants.py 2>$null | Select-Object -First 1
+          if (-not $prevShaLine) {
+            Write-Host "::error::Found prior release $($prevRel.tagName) but no source commit bumps APP_VERSION to $prevVer in gui_constants.py. Aborting to avoid a wrong commit range."
+            exit 1
+          }
+          $prevSha = ($prevShaLine -split ' ')[0]
+          $range = "$prevSha..HEAD"
+          $label = "التغييرات منذ الإصدار $($prevRel.tagName) (التزام المصدر $prevSha)"
 
           $log = @(git -C src log --oneline $range 2>$null)
-          if (-not $range -or $log.Count -eq 0) {
-            $log = @(git -C src log --oneline -40 HEAD 2>$null)
-            $label = "استخدام احتياطي: آخر 40 التزاماً (تعذّر تحديد حدّ إصدار سابق)"
+          if ($log.Count -eq 0) {
+            Write-Host "::error::No commits found in range '$range' for $cur. Aborting to avoid publishing empty notes."
+            exit 1
           }
 
           $feat = @(); $fix = @(); $docs = @(); $other = @()
