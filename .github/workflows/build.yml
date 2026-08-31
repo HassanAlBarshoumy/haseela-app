@@ -165,7 +165,8 @@ jobs:
           $cur = "$env:GITHUB_REF_NAME"
           if ($cur -like 'refs/tags/*') { $cur = $cur -replace '^refs/tags/','' }
 
-          $all = @(gh release list --repo "$env:GITHUB_REPOSITORY" --limit 20 --json tagName,publishedAt 2>$null | ConvertFrom-Json)
+          $rawReleases = (gh release list --repo "$env:GITHUB_REPOSITORY" --limit 20 --json tagName,publishedAt) 2>$null
+          $all = if ($rawReleases) { $rawReleases | ConvertFrom-Json } else { @() }
           $prevRel = $all | Where-Object { $_.tagName -ne $cur } | Select-Object -First 1
 
           $range = $null
