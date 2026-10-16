@@ -178,7 +178,7 @@ jobs:
             Write-Host "::error::Could not determine the previous release to diff against (got tagName='$($prevRel.tagName)'). Aborting release-note generation."
             exit 1
           }
-          $prevVer = $Matches[0]
+          $prevVer = $Matches[0] -replace '^v', ''
 
           # Map the prior version to the source commit that bumped APP_VERSION.
           $prevShaLine = git -C src log --reverse -S $prevVer --oneline -- gui_constants.py 2>$null | Select-Object -First 1
