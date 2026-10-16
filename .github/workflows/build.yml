@@ -161,6 +161,8 @@ jobs:
       - name: Generate release notes from source
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $cur = "$env:GITHUB_REF_NAME"
           if ($cur -like 'refs/tags/*') { $cur = $cur -replace '^refs/tags/','' }
