@@ -1,0 +1,72 @@
+name: CI (pytest gate)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: >-
+          Optional private-source ref (branch, tag or commit SHA) to test.
+          Defaults to the default branch (main) of the private repo.
+        required: false
+        type: string
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ inputs.ref || 'main' }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout release repository
+        uses: actions/checkout@v4
+
+      # Source stays private; this token only needs read access to it.
+      # The private repo never holds tags (pushing one there would burn paid
+      # Actions minutes), so the default ref is its main branch.
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: HassanAlBarshoumy/haseela
+          token: ${{ secrets.CI_PAT }}
+          ref: ${{ inputs.ref || 'main' }}
+          path: src
+          fetch-depth: 1
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: src/requirements-dev.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r src/requirements-dev.txt
+
+      - name: Ruff (lint + format check)
+        working-directory: src
+        shell: pwsh
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+
+      - name: Run project guard tests
+        working-directory: src
+        shell: pwsh
+        run: |
+          python -m pytest -q tests/test_project_guards.py tests/test_syntax_health.py tests/test_no_silent_exceptions.py
+
+      - name: Run full test suite
+        working-directory: src
+        shell: pwsh
+        run: |
+          python -m pytest -q
