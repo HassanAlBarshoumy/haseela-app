@@ -30,7 +30,7 @@ jobs:
 
       # Source stays private; this token only needs read access to it.
       # fetch-depth: 0 pulls full history so the release-notes generator
-      # (later in this workflow) can classify commits since the last release.
+      # (the next step) can classify commits since the last release.
       # The private repo never holds tags (pushing one there would burn
       # paid Actions minutes), so the default ref is its main branch.
       - name: Checkout private source
@@ -41,6 +41,33 @@ jobs:
           ref: ${{ inputs.ref || 'main' }}
           path: src
           fetch-depth: 0
+
+      # Notes and the bundled changelog must exist BEFORE the build: notes.md
+      # feeds the publish step, and src/resources/changelog.json is packed into
+      # the app (Nuitka --include-data-dir=resources) so the in-app changelog
+      # window works offline and already knows the release being built.
+      - name: Generate release notes and changelog snapshot
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = ""
+          if ($env:GITHUB_REF -like "refs/tags/v*") { $tag = $env:GITHUB_REF_NAME }
+          ./.github/scripts/generate-notes.ps1 `
+            -RepoFullName "$env:GITHUB_REPOSITORY" `
+            -SourcePath src `
+            -CurrentTag $tag `
+            -OutFile notes.md `
+            -ChangelogOut src/resources/changelog.json
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          if (-not (Test-Path "src/resources/changelog.json")) {
+            Write-Host "::error::changelog snapshot was not generated"
+            exit 1
+          }
+          if ($tag -and -not (Test-Path "notes.md")) {
+            Write-Host "::error::release notes were not generated for $tag"
+            exit 1
+          }
 
       - name: Set up Python 3.14
         uses: actions/setup-python@v5
@@ -102,6 +129,7 @@ jobs:
             "src/dist/main.dist/haseela.exe",
             "src/dist/main.dist/dictionary.db",
             "src/dist/main.dist/resources",
+            "src/dist/main.dist/resources/changelog.json",
             "src/dist/main.dist/bin/HaseelaActivate.exe",
             "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
             "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
@@ -152,69 +180,10 @@ jobs:
           retention-days: 14
 
       # Build release notes from the SOURCE repo's actual commits (the public
-      # repo is only a build surface and holds no source). The private repo is
-      # never tagged (BUILD.md), so a boundary can never be a private tag name.
-      # Strategy mirrors the versioning SOP: map each prior public release tag
-      # to the source commit that bumped APP_VERSION to that version (git log
-      # -G/-S on gui_constants.py). Fallbacks are clearly labelled so the notes
-      # scope is never silently misread.
-      - name: Generate release notes from source
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $cur = "$env:GITHUB_REF_NAME"
-          if ($cur -like 'refs/tags/*') { $cur = $cur -replace '^refs/tags/','' }
-
-          $rawReleases = (gh release list --repo "$env:GITHUB_REPOSITORY" --limit 20 --json tagName,publishedAt) 2>$null
-          $all = if ($rawReleases) { $rawReleases | ConvertFrom-Json } else { @() }
-          $prevRel = $all | Where-Object { $_.tagName -ne $cur } | Select-Object -First 1
-
-          # Fail fast: never fall back to a wide "last N commits" spill. If the
-          # prior release cannot be determined or mapped to a source commit,
-          # abort so misleading release notes are never published.
-          if ($null -eq $prevRel -or $prevRel.tagName -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
-            Write-Host "::error::Could not determine the previous release to diff against (got tagName='$($prevRel.tagName)'). Aborting release-note generation."
-            exit 1
-          }
-          $prevVer = $Matches[0] -replace '^v', ''
-
-          # Map the prior version to the source commit that bumped APP_VERSION.
-          $prevShaLine = git -C src log --reverse -S $prevVer --oneline -- gui_constants.py 2>$null | Select-Object -First 1
-          if (-not $prevShaLine) {
-            Write-Host "::error::Found prior release $($prevRel.tagName) but no source commit bumps APP_VERSION to $prevVer in gui_constants.py. Aborting to avoid a wrong commit range."
-            exit 1
-          }
-          $prevSha = ($prevShaLine -split ' ')[0]
-          $range = "$prevSha..HEAD"
-          $label = "التغييرات منذ الإصدار $($prevRel.tagName) (التزام المصدر $prevSha)"
-
-          $log = @(git -C src log --oneline $range 2>$null)
-          if ($log.Count -eq 0) {
-            Write-Host "::error::No commits found in range '$range' for $cur. Aborting to avoid publishing empty notes."
-            exit 1
-          }
-
-          $feat = @(); $fix = @(); $docs = @(); $other = @()
-          foreach ($line in $log) {
-            $subj = ($line -replace '^\S+\s+', '').Trim()
-            if ($subj -match '^feat') { $feat += $subj }
-            elseif ($subj -match '^fix') { $fix += $subj }
-            elseif ($subj -match '^docs') { $docs += $subj }
-            else { $other += $subj }
-          }
-
-          $out = @("> $label")
-          if ($feat.Count) { $out += ""; $out += "## ميزات جديدة"; $out += $feat }
-          if ($fix.Count)  { $out += ""; $out += "## إصلاحات";     $out += $fix }
-          if ($docs.Count) { $out += ""; $out += "## توثيق";       $out += $docs }
-          if ($other.Count){ $out += ""; $out += "## أخرى";        $out += $other }
-          $prevTag = if ($prevRel) { $prevRel.tagName } else { '' }
-          $out += ""
-          $out += "التغييرات الكاملة: https://github.com/$env:GITHUB_REPOSITORY/compare/$prevTag...$cur"
-          ($out -join "`n") | Set-Content -Path notes.md -Encoding UTF8
-
+      # repo is only a build surface and holds no source). Notes are generated
+      # BEFORE the build (see "Generate release notes and changelog snapshot"
+      # above) so src/resources/changelog.json is packed into the app; this
+      # workflow only publishes the already-written notes.md.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
