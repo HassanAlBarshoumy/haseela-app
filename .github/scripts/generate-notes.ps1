@@ -81,8 +81,19 @@ g]$Text)
   
       New-Item -ItemType Directory -Force $di
 r | Out-Null
-    }
-    [System.IO.File]::Writ
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    [System.IO.File]::Writ
 eAllText($Path, $Text, $Utf8NoBom)
 }
 
@@ -125,8 +136,19 @@ ue }
         if ($rel.tagName -matc
 h '^v[0-9]+\.[0-9]+\.[0-9]+$') { return $rel 
 }
-    }
-    return $null
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    return $null
 }
 
 function Get-Comm
@@ -169,9 +191,31 @@ rmance' }
 }
             default { return 'other' }
     
-    }
-    }
-    if ($s -match '(?i)bump(ing)?
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    if ($s -match '(?i)bump(ing)?
 \s+version|version\s+bump') { return 'skip' }
 
     return 'other'
@@ -227,8 +271,19 @@ on.ar
             $arLines += $items
         
 }
-    }
-    $arLines += ""
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    $arLines += ""
     $arLines += "�
 �لمقارنة مع الإصدار السا�
 �ق: $CompareUrl"
@@ -246,9 +301,31 @@ Count) {
    $enLines += $section.en
             $enLin
 es += $items
-        }
-    }
-    $enLines += 
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    $enLines += 
 ""
     $enLines += "Compare with the previous
  release: $CompareUrl"
@@ -301,13 +378,35 @@ ount -eq 1) {
         elseif ($kept.Count -eq 0) {
       
       $raw = "[]"
-        }
-        else {
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        else {
   
           $raw = ($kept | ConvertTo-Json -Dep
 th 6)
-        }
-
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0
         $published = (Get-Da
 te).ToUniversalTime().ToString("yyyy-MM-ddTHH
 :mm:ssZ")
@@ -327,8 +426,19 @@ ses/tag/$CurrentTag"
  = $false
             prerelease   = $false
  
-       }
-        $currentJson = ($current | C
+   
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        $currentJson = ($current | C
 onvertTo-Json -Depth 4 -Compress)
         $re
 st = $raw -replace '^\s*\[', '' -replace '\]\
@@ -337,34 +447,70 @@ s*$', ''
 pace($rest)) {
             $combined = "[$cur
 rentJson]"
-        }
-        else {
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        else {
          
    $combined = "[$currentJson,$rest]"
        
  }
-        $repoRootNotes = Join-Path (Get-Location) "notes.md"
-        [System.IO.File]::WriteAllText($repoRootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
-        Write-Host "Wrote release notes to $repoRootNotes"
-        $changelogOut = [System.IO.Path]::GetFullPath($ChangelogOut)
-        $chlogDir = Split-Path -Parent $changelogOut
-        if (-not (Test-Path $chlogDir)) { New-Item -ItemType Directory -Force -Path $chlogDir | Out-Null }
-        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOut
-        exit 0
-    }
-    else {
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    else {
         $combined = $raw
 
-    }
 
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0
     # التحقق من صحة JSON ق
 بل الكتابة كي لا يُحزم مل
 ف تالف.
     try {
         $null = $combi
 ned | ConvertFrom-Json
-    }
-    catch {
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    catch {
     
     Write-ErrorAndExit "Generated changelog i
 s not valid JSON: $($_.Exception.Message)"
@@ -408,20 +554,34 @@ esBody)) {
             Write-ErrorAndExit "Ov
 erride file $overridePath is empty; refusing 
 to publish blank notes."
-        }
-        Wr
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        Wr
 ite-Host "Using manual override notes: $overr
 idePath"
-        $repoRootNotes = Join-Path (Get-Location) "notes.md"
-        [System.IO.File]::WriteAllText($repoRootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
-        Write-Host "Wrote release notes to $repoRootNotes"
-        $changelogOut = [System.IO.Path]::GetFullPath($ChangelogOut)
-        $chlogDir = Split-Path -Parent $changelogOut
-        if (-not (Test-Path $chlogDir)) { New-Item -ItemType Directory -Force -Path $chlogDir | Out-Null }
-        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOut
-        exit 0
-    }
-    else {
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0    else {
         $prevRel = 
 Get-PreviousStableRelease -Repo $RepoFullName
  -CurrentTag $tag
@@ -430,8 +590,19 @@ Rel) {
             Write-ErrorAndExit "Could 
 not determine the previous stable release for
  $tag."
-        }
-        $prevVer = $prevRel
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        $prevVer = $prevRel
 .tagName -replace '^v', ''
 
         $prevShaL
@@ -444,8 +615,19 @@ vShaLine) {
 o source commit bumps APP_VERSION to $prevVer
  in gui_constants.py; aborting to avoid a wro
 ng commit range."
-        }
-        $prevSha 
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        $prevSha 
 = ($prevShaLine -split ' ')[0]
         $range
  = "$prevSha..HEAD"
@@ -457,8 +639,19 @@ nge 2>$null)
 
             Write-ErrorAndExit "No commits fo
 und in range '$range' for $tag."
-        }
-
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0
  
        $groups = @{
             features = @(
@@ -466,8 +659,19 @@ und in range '$range' for $tag."
             pe
 rformance = @(); docs = @(); other = @()
     
-    }
-        foreach ($subj in $log) {
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0        foreach ($subj in $log) {
      
        $section = Get-CommitSection -Subject 
 $subj
@@ -475,8 +679,19 @@ $subj
 continue }
             $groups[$section] += $
 subj
-        }
-
+    
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0
         $compareUrl = "https:
 //github.com/$RepoFullName/compare/$($prevRel
 .tagName)...$tag"
@@ -499,8 +714,19 @@ File -Path $OutFile -Text $notesBody
         
 Write-Host "Wrote release notes to $OutFile"
 
-    }
-}
+
+        $repoRoot = Get-Location
+        $rootNotes = Join-Path $repoRoot "notes.md"
+        $srcNotes = Join-Path $SourcePath "notes.md"
+        [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        [System.IO.File]::WriteAllText($srcNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $rootNotes"
+        $changelogOutPath = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDirPath = Split-Path -Parent $changelogOutPath
+        if (-not (Test-Path $chlogDirPath)) { New-Item -ItemType Directory -Force -Path $chlogDirPath | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOutPath
+        Write-Host "Wrote changelog snapshot to $changelogOutPath"
+        exit 0}
 else {
     Write-Host "No release tag
  supplied (got '$tag'); skipping notes and wr
