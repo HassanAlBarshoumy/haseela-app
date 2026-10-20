@@ -404,6 +404,9 @@ to publish blank notes."
         Wr
 ite-Host "Using manual override notes: $overr
 idePath"
+          $rootNotes = Join-Path (Get-Location) "notes.md"
+          [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+          Write-Host "Wrote release notes to $rootNotes"
     }
     else {
         $prevRel = 
@@ -495,6 +498,5 @@ Write-
 ChangelogSnapshot -Repo $RepoFullName -Curren
 tTag $tag -NotesBody $notesBody -Path $Change
 logOut
-
 
 
