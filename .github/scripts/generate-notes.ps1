@@ -343,6 +343,14 @@ rentJson]"
    $combined = "[$currentJson,$rest]"
        
  }
+        $repoRootNotes = Join-Path (Get-Location) "notes.md"
+        [System.IO.File]::WriteAllText($repoRootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $repoRootNotes"
+        $changelogOut = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDir = Split-Path -Parent $changelogOut
+        if (-not (Test-Path $chlogDir)) { New-Item -ItemType Directory -Force -Path $chlogDir | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOut
+        exit 0
     }
     else {
         $combined = $raw
@@ -404,9 +412,14 @@ to publish blank notes."
         Wr
 ite-Host "Using manual override notes: $overr
 idePath"
-          $rootNotes = Join-Path (Get-Location) "notes.md"
-          [System.IO.File]::WriteAllText($rootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
-          Write-Host "Wrote release notes to $rootNotes"
+        $repoRootNotes = Join-Path (Get-Location) "notes.md"
+        [System.IO.File]::WriteAllText($repoRootNotes, $notesBody, [System.Text.UTF8Encoding]($false))
+        Write-Host "Wrote release notes to $repoRootNotes"
+        $changelogOut = [System.IO.Path]::GetFullPath($ChangelogOut)
+        $chlogDir = Split-Path -Parent $changelogOut
+        if (-not (Test-Path $chlogDir)) { New-Item -ItemType Directory -Force -Path $chlogDir | Out-Null }
+        Write-ChangelogSnapshot -SourcePath $SourcePath -CurrentTag $tag -OutFile $changelogOut
+        exit 0
     }
     else {
         $prevRel = 
