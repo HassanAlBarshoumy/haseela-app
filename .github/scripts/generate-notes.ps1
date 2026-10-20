@@ -51,7 +51,7 @@ Tag v1.4.1 -OutFile notes.md
 #>
 #Requires -Ve
 rsion 5.1
-
+[CmdletBinding()]
 param(
     [strin
 g]$RepoFullName = "HassanAlBarshoumy/haseela-
