@@ -111,7 +111,7 @@ jobs:
             --include-package=onnxruntime `
             --include-package-data=onnxruntime `
             --include-package-data=numpy `
-            --include-package-data=sounddevice `
+            --include-module=sounddevice `
             --include-package-data=_sounddevice_data `
             --output-filename="haseela.exe" `
             --output-dir=dist `
