@@ -117,6 +117,18 @@ jobs:
             --include-package-data=certifi `
             --include-package=websockets `
             --include-package-data=websockets `
+            --include-package=edge_tts `
+            --include-package-data=edge_tts `
+            --include-package=aiohttp `
+            --include-package-data=aiohttp `
+            --include-package=comtypes `
+            --include-package-data=comtypes `
+            --include-package=winrt `
+            --include-package-data=winrt `
+            --include-package=win32com `
+            --include-package-data=win32com `
+            --include-module=pythoncom `
+            --include-module=pywintypes `
             --output-filename="haseela.exe" `
             --output-dir=dist `
             main.py
