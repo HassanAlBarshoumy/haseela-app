@@ -115,6 +115,8 @@ jobs:
             --include-package-data=_sounddevice_data `
             --include-package=certifi `
             --include-package-data=certifi `
+            --include-package=websockets `
+            --include-package-data=websockets `
             --output-filename="haseela.exe" `
             --output-dir=dist `
             main.py
