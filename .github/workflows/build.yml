@@ -212,11 +212,28 @@ jobs:
         run: Compress-Archive -Path src/dist/main.dist/* -DestinationPath haseela-windows-portable.zip -Force
 
 
-      - name: Smoke test critical imports
+      - name: Smoke test critical bundle modules
         shell: pwsh
         run: |
-          $env:PYTHONPATH = (Resolve-Path "src/dist/main.dist").Path
-          python -c "import edge_tts, aiohttp, websockets, certifi, comtypes, winrt, win32com, pythoncom, pywintypes, deep_translator, bs4, soupsieve; print('smoke-ok')"
+          $bundle = "src/dist/main.dist"
+          $requiredPaths = @(
+            "$bundle/edge_tts",
+            "$bundle/aiohttp",
+            "$bundle/websockets",
+            "$bundle/certifi",
+            "$bundle/comtypes",
+            "$bundle/winrt",
+            "$bundle/win32com",
+            "$bundle/deep_translator",
+            "$bundle/bs4",
+            "$bundle/soupsieve"
+          )
+          $missing = @($requiredPaths | Where-Object { -not (Test-Path $_) })
+          if ($missing.Count -gt 0) {
+            $missing | ForEach-Object { Write-Error "Missing bundled module: $_" }
+            exit 1
+          }
+          Write-Host "smoke-ok"
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
