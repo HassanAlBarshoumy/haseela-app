@@ -1,14 +1,7 @@
-name: Build Haseela installer
+name: Build Windows EXE (Nuitka)
 
 on:
   workflow_dispatch:
-    inputs:
-      ref:
-        description: >-
-          Optional private-source ref (branch, tag or commit SHA) to build.
-          Defaults to the default branch (main) of the private repo.
-        required: false
-        type: string
   push:
     tags:
       - "v*"
@@ -25,74 +18,43 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
-      - name: Checkout release repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      # Source stays private; this token only needs read access to it.
-      # fetch-depth: 0 pulls full history so the release-notes generator
-      # (the next step) can classify commits since the last release.
-      # The private repo never holds tags (pushing one there would burn
-      # paid Actions minutes), so the default ref is its main branch.
-      - name: Checkout private source
-        uses: actions/checkout@v4
-        with:
-          repository: HassanAlBarshoumy/haseela
-          token: ${{ secrets.CI_PAT }}
-          ref: ${{ inputs.ref || 'main' }}
-          path: src
-          fetch-depth: 0
-
-      # Notes and the bundled changelog must exist BEFORE the build: notes.md
-      # feeds the publish step, and src/resources/changelog.json is packed into
-      # the app (Nuitka --include-data-dir=resources) so the in-app changelog
-      # window works offline and already knows the release being built.
-      - name: Generate release notes and changelog snapshot
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag = ""
-          if ($env:GITHUB_REF -like "refs/tags/v*") { $tag = $env:GITHUB_REF_NAME }
-          ./.github/scripts/generate-notes.ps1 `
-            -RepoFullName "$env:GITHUB_REPOSITORY" `
-            -SourcePath src `
-            -CurrentTag $tag `
-            -OutFile notes.md `
-            -ChangelogOut src/resources/changelog.json
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          if (-not (Test-Path "src/resources/changelog.json")) {
-            Write-Host "::error::changelog snapshot was not generated"
-            exit 1
-          }
-          if ($tag -and -not (Test-Path "notes.md")) {
-            Write-Host "::error::release notes were not generated for $tag"
-            exit 1
-          }
 
       - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: src/requirements.txt
 
       - name: Install dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r src/requirements.txt
+          python -m pip install -r requirements.txt
           python -m pip install nuitka
 
-      - name: Restore Nuitka cache
-        uses: actions/cache@v4
-        with:
-          path: ~\AppData\Local\Nuitka\Nuitka\Cache
-          key: nuitka-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            nuitka-${{ runner.os }}-
+      - name: Generate bundled changelog snapshot
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force resources | Out-Null
+          $headers = @{
+            "Accept" = "application/vnd.github+json"
+            "User-Agent" = "Haseela-Build"
+          }
+          $resp = Invoke-RestMethod -Uri "https://api.github.com/repos/HassanAlBarshoumy/haseela-app/releases?per_page=100" -Headers $headers
+          $json = $resp | ConvertTo-Json -Depth 8
+          [System.IO.File]::WriteAllText((Join-Path (Get-Location) "resources/changelog.json"), $json, [System.Text.UTF8Encoding]::new($false))
+          if (-not (Test-Path "resources/changelog.json")) {
+            Write-Error "changelog snapshot was not generated"
+            exit 1
+          }
 
+      # Mirrors the local build script, with two CI-specific differences:
+      # bin/ is not tracked in the repository (optional activation companion,
+      # the app degrades gracefully without it), and resources/ is included
+      # so the built EXE ships all flashcard and game content banks.
       - name: Build standalone EXE with Nuitka
-        working-directory: src
         shell: pwsh
         run: |
           python -m nuitka `
@@ -147,78 +109,64 @@ jobs:
             main.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      # Nuitka intentionally skips DLLs and executables inside its data dirs
+      # Nuitka intentionally skips DLLs inside --include-data-dir targets
       # (it treats them as code), so the screen-reader helper DLLs that
       # UniversalSpeechEngine loads at runtime are copied in explicitly.
       # The same rule strips executables, hence HaseelaActivate.exe too.
       - name: Copy native helpers
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force src/dist/main.dist/lib/UniversalSpeech | Out-Null
-          Copy-Item src/lib/UniversalSpeech/* src/dist/main.dist/lib/UniversalSpeech/ -Force
-          New-Item -ItemType Directory -Force src/dist/main.dist/bin | Out-Null
-          Copy-Item src/bin/HaseelaActivate.exe src/dist/main.dist/bin/HaseelaActivate.exe -Force
-
-          $pywinSys32 = "src/venv/Lib/site-packages/pywin32_system32"
-          if (-not (Test-Path $pywinSys32)) { $pywinSys32 = "venv/Lib/site-packages/pywin32_system32" }
+          New-Item -ItemType Directory -Force dist/main.dist/lib/UniversalSpeech | Out-Null
+          Copy-Item lib/UniversalSpeech/* dist/main.dist/lib/UniversalSpeech/ -Force
+          New-Item -ItemType Directory -Force dist/main.dist/bin | Out-Null
+          if (Test-Path bin/HaseelaActivate.exe) {
+            Copy-Item bin/HaseelaActivate.exe dist/main.dist/bin/HaseelaActivate.exe -Force
+          } else {
+            Write-Warning "bin/HaseelaActivate.exe not found; activation will be disabled in this build."
+          }
+          $pywinSys32 = "venv/Lib/site-packages/pywin32_system32"
           foreach ($pat in @("pythoncom*.dll", "pywintypes*.dll")) {
             $found = @(Get-ChildItem -Path $pywinSys32 -Filter $pat -ErrorAction SilentlyContinue)
-            if ($found.Count -eq 0) { Write-Warning "Missing pywin32 runtime DLL pattern: $pywinSys32/$pat"; continue }
-            foreach ($f in $found) { Copy-Item $f.FullName (Join-Path "src/dist/main.dist" $f.Name) -Force }
+            if ($found.Count -eq 0) {
+              Write-Warning "Missing pywin32 runtime DLL pattern: $pywinSys32/$pat"
+              continue
+            }
+            foreach ($f in $found) {
+              Copy-Item $f.FullName (Join-Path "dist/main.dist" $f.Name) -Force
+            }
           }
 
       - name: Verify build output
         shell: pwsh
         run: |
           $required = @(
-            "src/dist/main.dist/haseela.exe",
-            "src/dist/main.dist/dictionary.db",
-            "src/dist/main.dist/NOTICE.dictionary.txt",
-            "src/dist/main.dist/sherpa_onnx",
-            "src/dist/main.dist/resources",
-            "src/dist/main.dist/resources/changelog.json",
-            "src/dist/main.dist/bin/HaseelaActivate.exe",
-            "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
-            "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
+            "dist/main.dist/haseela.exe",
+            "dist/main.dist/dictionary.db",
+            "dist/main.dist/NOTICE.dictionary.txt",
+            "dist/main.dist/sherpa_onnx",
+            "dist/main.dist/resources",
+            "dist/main.dist/resources/changelog.json",
+            "dist/main.dist/bin/HaseelaActivate.exe",
+            "dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
+            "dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
           )
-          $pywinDlls = @(Get-ChildItem "src/dist/main.dist/pythoncom*.dll","src/dist/main.dist/pywintypes*.dll" -ErrorAction SilentlyContinue)
-          if ($pywinDlls.Count -lt 2) { Write-Error "Missing pywin32 runtime DLLs in bundle"; exit 1 }
+          $pywinDlls = @(Get-ChildItem "dist/main.dist/pythoncom*.dll","dist/main.dist/pywintypes*.dll" -ErrorAction SilentlyContinue)
+          if ($pywinDlls.Count -lt 2) {
+            Write-Error "Missing pywin32 runtime DLLs in bundle (pythoncom*.dll/pywintypes*.dll)"
+            exit 1
+          }
           foreach ($f in $required) {
             if (-not (Test-Path $f)) {
               Write-Error "Missing from bundle: $f"
               exit 1
             }
           }
-          Get-ChildItem src/dist/main.dist | Select-Object Name, Length
-
-      - name: Install Inno Setup
-        shell: pwsh
-        run: choco install innosetup -y --no-progress
-
-      - name: Compile installer with Inno Setup
-        shell: pwsh
-        run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            Write-Error "ISCC.exe not found after chocolatey install"
-            exit 1
-          }
-          & $iscc src/haseela.iss
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path "src/installer/haseela-setup.exe")) {
-            Write-Error "installer was not produced"
-            exit 1
-          }
-
-      - name: Zip portable distribution folder
-        shell: pwsh
-        run: Compress-Archive -Path src/dist/main.dist/* -DestinationPath haseela-windows-portable.zip -Force
-
+          Get-ChildItem dist/main.dist | Select-Object Name, Length
 
       - name: Smoke test critical bundle modules
         shell: pwsh
         run: |
-          $bundle = "src/dist/main.dist"
+          $bundle = "dist/main.dist"
           $requiredPaths = @(
             "$bundle/edge_tts",
             "$bundle/aiohttp",
@@ -239,11 +187,34 @@ jobs:
           }
           Write-Host "smoke-ok"
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Compile installer with Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found after chocolatey install"
+            exit 1
+          }
+          & $iscc haseela.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path "installer/haseela-setup.exe")) {
+            Write-Error "installer was not produced"
+            exit 1
+          }
+
+      - name: Zip portable distribution folder
+        shell: pwsh
+        run: Compress-Archive -Path dist/main.dist/* -DestinationPath haseela-windows-portable.zip -Force
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: haseela-installer
-          path: src/installer/haseela-setup.exe
+          path: installer/haseela-setup.exe
           retention-days: 14
 
       - name: Upload portable artifact
@@ -253,20 +224,14 @@ jobs:
           path: haseela-windows-portable.zip
           retention-days: 14
 
-      # Build release notes from the SOURCE repo's actual commits (the public
-      # repo is only a build surface and holds no source). Notes are generated
-      # BEFORE the build (see "Generate release notes and changelog snapshot"
-      # above) so src/resources/changelog.json is packed into the app; this
-      # workflow only publishes the already-written notes.md.
-      - name: Publish GitHub Release
+      - name: Attach builds to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$env:GITHUB_REF_NAME" `
-            "src/installer/haseela-setup.exe" `
+            "installer/haseela-setup.exe" `
             "haseela-windows-portable.zip" `
             --title "Haseela $env:GITHUB_REF_NAME" `
-            --notes-file notes.md `
-            --latest
+            --generate-notes
