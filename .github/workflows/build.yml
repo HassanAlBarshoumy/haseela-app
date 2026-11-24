@@ -219,20 +219,20 @@ jobs:
         shell: pwsh
         run: |
           $bundle = "src/dist/main.dist"
-          $requiredPaths = @(
-            "$bundle/edge_tts",
-            "$bundle/aiohttp",
-            "$bundle/websockets",
-            "$bundle/certifi",
-            "$bundle/comtypes",
-            "$bundle/winrt",
-            "$bundle/win32com",
-            "$bundle/win32comext",
-            "$bundle/deep_translator",
-            "$bundle/bs4",
-            "$bundle/soupsieve"
+          $requiredModules = @(
+            "edge_tts", "aiohttp", "websockets", "certifi", "comtypes",
+            "winrt", "win32com", "win32comext", "deep_translator", "bs4", "soupsieve"
           )
-          $missing = @($requiredPaths | Where-Object { -not (Test-Path $_) })
+          $missing = @()
+          foreach ($mod in $requiredModules) {
+            $dirPath = Join-Path $bundle $mod
+            $hasDir = Test-Path $dirPath
+            $hasFile = @(Get-ChildItem -Path $bundle -Filter "$mod*" -File -ErrorAction SilentlyContinue | Select-Object -First 1).Count -gt 0
+            $hasNested = @(Get-ChildItem -Path $bundle -Recurse -Filter "${mod}*" -File -ErrorAction SilentlyContinue | Select-Object -First 1).Count -gt 0
+            if (-not ($hasDir -or $hasFile -or $hasNested)) {
+              $missing += $mod
+            }
+          }
           if ($missing.Count -gt 0) {
             $missing | ForEach-Object { Write-Error "Missing bundled module: $_" }
             exit 1
