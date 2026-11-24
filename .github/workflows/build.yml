@@ -125,8 +125,16 @@ jobs:
             --include-package-data=comtypes `
             --include-package=winrt `
             --include-package-data=winrt `
+            --include-package=deep_translator `
+            --include-package-data=deep_translator `
+            --include-package=bs4 `
+            --include-package-data=bs4 `
+            --include-package=soupsieve `
+            --include-package-data=soupsieve `
             --include-package=win32com `
             --include-package-data=win32com `
+            --include-package=win32comext `
+            --include-package-data=win32comext `
             --include-module=pythoncom `
             --include-module=pywintypes `
             --output-filename="haseela.exe" `
@@ -146,6 +154,16 @@ jobs:
           New-Item -ItemType Directory -Force src/dist/main.dist/bin | Out-Null
           Copy-Item src/bin/HaseelaActivate.exe src/dist/main.dist/bin/HaseelaActivate.exe -Force
 
+          foreach ($dll in @("pythoncom314.dll", "pywintypes314.dll")) {
+            $src = Join-Path "src/venv/Lib/site-packages/pywin32_system32" $dll
+            if (-not (Test-Path $src)) { $src = Join-Path "venv/Lib/site-packages/pywin32_system32" $dll }
+            if (Test-Path $src) {
+              Copy-Item $src (Join-Path "src/dist/main.dist" $dll) -Force
+            } else {
+              Write-Warning "Missing pywin32 runtime DLL: $dll"
+            }
+          }
+
       - name: Verify build output
         shell: pwsh
         run: |
@@ -158,7 +176,9 @@ jobs:
             "src/dist/main.dist/resources/changelog.json",
             "src/dist/main.dist/bin/HaseelaActivate.exe",
             "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
-            "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
+            "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll",
+            "src/dist/main.dist/pythoncom314.dll",
+            "src/dist/main.dist/pywintypes314.dll"
           )
           foreach ($f in $required) {
             if (-not (Test-Path $f)) {
