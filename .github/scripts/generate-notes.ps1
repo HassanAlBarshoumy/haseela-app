@@ -222,7 +222,7 @@ if ($isRelease) {
     # A manual override file, when present, is used verbatim.
     $overridePath = Join-Path $SourcePath "docs/releases/$tag.md"
     if (Test-Path $overridePath) {
-        $notesBody = [System.IO.File]::ReadAllText((Resolve-Path $overridePath))
+        $notesBody = [System.IO.File]::ReadAllText((Resolve-Path $overridePath).Path, [System.Text.Encoding]::UTF8)
         if ([string]::IsNullOrWhiteSpace($notesBody)) {
             Write-ErrorAndExit "Override file $overridePath is empty; refusing to publish blank notes."
         }
