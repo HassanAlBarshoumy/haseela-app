@@ -121,6 +121,11 @@ jobs:
             --include-package-data=edge_tts `
             --include-package=aiohttp `
             --include-package-data=aiohttp `
+            --include-package=multidict `
+            --include-package=yarl `
+            --include-package=frozenlist `
+            --include-package=propcache `
+            --include-package=aiosignal `
             --include-package=comtypes `
             --include-package-data=comtypes `
             --include-package=winrt `
@@ -154,14 +159,12 @@ jobs:
           New-Item -ItemType Directory -Force src/dist/main.dist/bin | Out-Null
           Copy-Item src/bin/HaseelaActivate.exe src/dist/main.dist/bin/HaseelaActivate.exe -Force
 
-          foreach ($dll in @("pythoncom314.dll", "pywintypes314.dll")) {
-            $src = Join-Path "src/venv/Lib/site-packages/pywin32_system32" $dll
-            if (-not (Test-Path $src)) { $src = Join-Path "venv/Lib/site-packages/pywin32_system32" $dll }
-            if (Test-Path $src) {
-              Copy-Item $src (Join-Path "src/dist/main.dist" $dll) -Force
-            } else {
-              Write-Warning "Missing pywin32 runtime DLL: $dll"
-            }
+          $pywinSys32 = "src/venv/Lib/site-packages/pywin32_system32"
+          if (-not (Test-Path $pywinSys32)) { $pywinSys32 = "venv/Lib/site-packages/pywin32_system32" }
+          foreach ($pat in @("pythoncom*.dll", "pywintypes*.dll")) {
+            $found = @(Get-ChildItem -Path $pywinSys32 -Filter $pat -ErrorAction SilentlyContinue)
+            if ($found.Count -eq 0) { Write-Warning "Missing pywin32 runtime DLL pattern: $pywinSys32/$pat"; continue }
+            foreach ($f in $found) { Copy-Item $f.FullName (Join-Path "src/dist/main.dist" $f.Name) -Force }
           }
 
       - name: Verify build output
@@ -176,10 +179,10 @@ jobs:
             "src/dist/main.dist/resources/changelog.json",
             "src/dist/main.dist/bin/HaseelaActivate.exe",
             "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
-            "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll",
-            "src/dist/main.dist/pythoncom314.dll",
-            "src/dist/main.dist/pywintypes314.dll"
+            "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
           )
+          $pywinDlls = @(Get-ChildItem "src/dist/main.dist/pythoncom*.dll","src/dist/main.dist/pywintypes*.dll" -ErrorAction SilentlyContinue)
+          if ($pywinDlls.Count -lt 2) { Write-Error "Missing pywin32 runtime DLLs in bundle"; exit 1 }
           foreach ($f in $required) {
             if (-not (Test-Path $f)) {
               Write-Error "Missing from bundle: $f"
@@ -224,6 +227,7 @@ jobs:
             "$bundle/comtypes",
             "$bundle/winrt",
             "$bundle/win32com",
+            "$bundle/win32comext",
             "$bundle/deep_translator",
             "$bundle/bs4",
             "$bundle/soupsieve"
