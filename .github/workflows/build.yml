@@ -211,6 +211,13 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path src/dist/main.dist/* -DestinationPath haseela-windows-portable.zip -Force
 
+
+      - name: Smoke test critical imports
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path "src/dist/main.dist").Path
+          python -c "import edge_tts, aiohttp, websockets, certifi, comtypes, winrt, win32com, pythoncom, pywintypes, deep_translator, bs4, soupsieve; print('smoke-ok')"
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
