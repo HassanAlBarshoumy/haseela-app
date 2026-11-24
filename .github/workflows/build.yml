@@ -113,6 +113,8 @@ jobs:
             --include-package-data=numpy `
             --include-module=sounddevice `
             --include-package-data=_sounddevice_data `
+            --include-package=certifi `
+            --include-package-data=certifi `
             --output-filename="haseela.exe" `
             --output-dir=dist `
             main.py
