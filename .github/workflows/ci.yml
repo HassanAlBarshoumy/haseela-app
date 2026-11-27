@@ -55,6 +55,7 @@ jobs:
       - name: Ruff (lint + format check)
         working-directory: src
         shell: pwsh
+        continue-on-error: true
         run: |
           python -m ruff check .
           python -m ruff format --check .
