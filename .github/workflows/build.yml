@@ -123,6 +123,7 @@ jobs:
             --include-package-data=onnxruntime `
             --include-package-data=numpy `
             --include-module=sounddevice `
+            --include-module=anki_attachments `
             --include-module=anki_reader `
             --include-module=anki_writer `
             --include-module=media_store `
