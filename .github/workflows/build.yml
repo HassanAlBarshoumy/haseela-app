@@ -123,6 +123,19 @@ jobs:
             --include-package-data=onnxruntime `
             --include-package-data=numpy `
             --include-module=sounddevice `
+            --include-module=anki_reader `
+            --include-module=anki_writer `
+            --include-module=media_store `
+            --include-module=smoke_checks `
+            --include-module=import_profile_store `
+            --include-module=ui.windows.import_worker `
+            --include-module=ui_kit.anki_mapping_widget `
+            --include-module=ui_kit.app_preferences `
+            --include-module=ui_kit.card_list_model `
+            --include-module=ui_kit.card_media_widget `
+            --include-module=ui_kit.extra_fields_widget `
+            --include-module=ui_kit.rich_card_view `
+            --include-module=ui_kit.card_fields_access `
             --include-package-data=_sounddevice_data `
             --include-package=certifi `
             --include-package-data=certifi `
@@ -192,6 +205,9 @@ jobs:
             "src/dist/main.dist/sherpa_onnx",
             "src/dist/main.dist/resources",
             "src/dist/main.dist/resources/changelog.json",
+            "src/dist/main.dist/resources/help_en.html",
+            "src/dist/main.dist/locales/en/LC_MESSAGES/haseela.mo",
+            "src/dist/main.dist/bin/HaseelaActivate.exe",
             "src/dist/main.dist/lib/UniversalSpeech/UniversalSpeech.dll",
             "src/dist/main.dist/lib/UniversalSpeech/nvdaControllerClient.dll"
           )
@@ -239,6 +255,84 @@ jobs:
             exit 1
           }
           Write-Host "smoke-ok"
+
+      # Qt Multimedia carries card-audio playback (QMediaPlayer/QAudioOutput).
+      # A PySide6-Essentials-only build drops these DLLs, so fail here instead
+      # of shipping a silent regression. No local build is used.
+      - name: Verify Qt Multimedia in built bundle
+        shell: pwsh
+        run: |
+          $bundle = "src/dist/main.dist"
+          $multimedia = @(Get-ChildItem -Path $bundle -Recurse -Filter "Qt6Multimedia*.dll" -ErrorAction SilentlyContinue)
+          if ($multimedia.Count -eq 0) {
+            Write-Error "Qt Multimedia DLLs missing from bundle; card audio would not play"
+            exit 1
+          }
+          $exe = Join-Path $bundle "haseela.exe"
+          $audioSymbols = @("QMediaPlayer", "QAudioOutput")
+          foreach ($symbol in $audioSymbols) {
+            $inExe = (Test-Path $exe) -and (Select-String -Path $exe -Pattern $symbol -SimpleMatch -Quiet -ErrorAction SilentlyContinue)
+            $inPyd = @(Get-ChildItem -Path $bundle -Recurse -Filter "*QtMultimedia*.pyd" -ErrorAction SilentlyContinue | Select-Object -First 1).Count -gt 0
+            if (-not ($inExe -or $inPyd)) {
+              Write-Error "Audio class $symbol missing from bundle"
+              exit 1
+            }
+          }
+          Write-Host ("qt-multimedia-ok: " + (($multimedia | ForEach-Object { $_.Name }) -join ", "))
+
+      # Exercise the media classes inside the built bundle itself: it is not
+      # enough for the DLLs to be present. No audible output is required.
+      - name: Built bundle media smoke
+        shell: pwsh
+        run: |
+          $exe = "src/dist/main.dist/haseela.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Built EXE not found for media smoke"
+            exit 1
+          }
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $env:HASEELA_SMOKE_MEDIA = "1"
+          $output = & $exe 2>&1
+          $code = $LASTEXITCODE
+          Write-Host ($output -join "`n")
+          if ($code -ne 0) {
+            Write-Error "Built media smoke exited with code $code"
+            exit 1
+          }
+          if (-not ($output -match "media-smoke-ok")) {
+            Write-Error "Built media smoke did not report media-smoke-ok"
+            exit 1
+          }
+          Write-Host "built-media-smoke-ok"
+
+      # Launch the built EXE and confirm it stays alive and creates the media
+      # folder on startup. No local build is performed here.
+      - name: Smoke launch built EXE
+        shell: pwsh
+        run: |
+          $exe = "src/dist/main.dist/haseela.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Built EXE not found for smoke launch"
+            exit 1
+          }
+          $appDataDir = Join-Path $env:APPDATA "Haseela"
+          $mediaDir = Join-Path $appDataDir "haseela_media"
+          if (Test-Path $mediaDir) {
+            Remove-Item -Path $mediaDir -Recurse -Force
+          }
+          $proc = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 8
+          $proc.Refresh()
+          if ($proc.HasExited) {
+            Write-Error "haseela.exe exited during smoke launch with code $($proc.ExitCode)"
+            exit 1
+          }
+          Stop-Process -Id $proc.Id -Force
+          if (-not (Test-Path $mediaDir)) {
+            Write-Error "haseela_media folder was not created on built app startup"
+            exit 1
+          }
+          Write-Host "smoke-launch-ok: process stayed alive for 8s and haseela_media exists"
 
       - name: Install Inno Setup
         shell: pwsh
